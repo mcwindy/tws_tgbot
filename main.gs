@@ -1,9 +1,9 @@
-let boturl =
-let firebaseUrl =
-let secret =
+let boturl = 'xxx';
+let firebaseUrl = 'https://xxx.firebaseio.com/';
+let secret = 'xxx';
 let apiurl = 'https://api.status.tw/2.0/server/list/';
-let test_chat_id =
-let chat_id =
+let test_chat_id = 'xxx';
+let chat_id = 'xxx';
 
 function doPost(e) {
   identificarTG(JSON.parse(e.postData.contents));
@@ -49,7 +49,7 @@ getonlineplayers - Get current online players
 getnumberofplayers - Get the number of online players
 whereis - Query which server is someone in
 
-in the get commands, you can use arguments:
+in the getserverlist commands, you can use arguments:
 1.name= ,2.mode= ,3.-a (show empty servers) ,4.-i (ignore specific players)`,
         ],
       };
@@ -60,7 +60,7 @@ in the get commands, you can use arguments:
     } else if (e.message.text.indexOf('/getnumberofplayers') === 0) {
       messageToSend = getData('playernumber', e.message.text.substring(20));
     } else if (e.message.text.indexOf('/whereis') === 0) {
-      messageToSend = getData('whereis', e.message.text.substring(9));
+      messageToSend = querPlayer(e.message.text.substring(9));
     }
     if (messageToSend.responses.length !== 0) {
       for (let thing of messageToSend.responses) sendMessage(message, thing);
@@ -104,8 +104,12 @@ function getLastRunTime(base) {
   return base.getData('lastRunTime');
 }
 
+function getAllServer() {
+  return JSON.parse(UrlFetchApp.fetch(apiurl)).servers;
+}
+
 function getData(kind, commands) {
-  let serverlist = JSON.parse(UrlFetchApp.fetch(apiurl)).servers;
+  let serverlist = getAllServer();
   let namefilter = '';
   let modefilter = '';
   let showallserver = 0;
@@ -134,12 +138,12 @@ function getData(kind, commands) {
           totalNumOfServers += 1;
         }
         let response = '';
+        let tmp = '|';
+        for (let player of server.players) {
+          tmp += player.name + '|';
+        }
         if (kind === 'serverlist') {
           if (showplayers) {
-            let tmp = '|';
-            for (let player of server.players) {
-              tmp += player.name + '|';
-            }
             response = [
               server.name,
               server.map + '    ' + server.server_ip + ':' + server.server_port,
@@ -194,4 +198,29 @@ function getData(kind, commands) {
     totalNumOfServers: totalNumOfServers,
   };
   return messageToSend;
+}
+
+function querPlayer(playername) {
+  let serverlist = getAllServer();
+  let responses = [];
+  for (let server of serverlist) {
+    for (let player of server.players)
+      if (player.name === playername) {
+        let tmp = '|';
+        for (let player of server.players) {
+          if (player.name !== playername) tmp += player.name + '|';
+        }
+        let response = [
+          server.name,
+          server.server_ip + ':' + server.server_port,
+          server.gamemode,
+          'with ' + tmp,
+        ].join('\n');
+        responses.push(response);
+        break;
+      }
+  }
+  if (responses.length === 0) responses = ['Not noline.'];
+  if (playername === '') responses = ['Who are you going to query?'];
+  return { responses: responses };
 }
