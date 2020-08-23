@@ -1,4 +1,5 @@
-let boturl = 'xxx';
+let boturl =
+  'https://api.telegram.org/botxxx/';
 let firebaseUrl = 'https://xxx.firebaseio.com/';
 let secret = 'xxx';
 let apiurl = 'https://api.status.tw/2.0/server/list/';
@@ -50,7 +51,8 @@ getnumberofplayers - Get the number of online players
 whereis - Query which server is someone in
 
 in the getserverlist commands, you can use arguments:
-1.name= ,2.mode= ,3.-a (show empty servers) ,4.-i (ignore specific players)`,
+1.name= ,2.mode= ,3.-a (show empty servers) ,4.-i (ignore specific players)
+example:/getserverlist name=chn2 mode=ddr -a -i`,
         ],
       };
     } else if (e.message.text.indexOf('/getserverlist') === 0) {
@@ -125,10 +127,7 @@ function getData(kind, commands) {
   let totalNumOfPlayers = 0;
   let totalNumOfServers = 0;
   for (let server of serverlist) {
-    if (
-      (server.num_players > 0 && JSON.stringify(server.players.length) > 0) ||
-      showallserver
-    ) {
+    if (JSON.stringify(server.players.length) > 0 || showallserver) {
       if (server.country === 'China') {
         if (
           server.name.toLowerCase().indexOf(namefilter.toLowerCase()) >= 0 &&
