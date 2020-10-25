@@ -14,9 +14,8 @@ function doPost(e) {
 }
 
 function identificarTG(e) {
-  e.message.text = e.message.text.replace('@' + botname, '');
   if (e === undefined || e.triggerUid !== undefined) {
-    //// inflist
+    //// pvplist
     // let lastRunTime = databaseOperation('getLastRunTime');
     // let currentTime = Date.parse(new Date());
     // let timeDelta = currentTime - lastRunTime;
@@ -42,6 +41,7 @@ function identificarTG(e) {
     // let playercount = playerCount((isforrecord = true));
     // databaseOperation('setPlayerCount', playercount);
   } else {
+    e.message.text = e.message.text.replace('@' + botname, '');
     let message = {
       method: 'sendMessage',
       chat_id: e.message.chat.id.toString(),
@@ -52,15 +52,13 @@ function identificarTG(e) {
       messageToSend = {
         responses: [
           `help - Get help
-getserverlist - Get current servers with online players
+getserverlist - Use carefully! Get current servers with online players
 getonlineplayers - Get current online players
 getnumberofplayers - Get the number of online players
-whereis - Query which server is someone in
-
+find - Query which server is someone in
 in the getserverlist command, you can use arguments:
 1.name= ,2.mode= ,3.-a (show empty servers) ,4.-i (ignore specific players)
 example:/getserverlist name=chn2 mode=ddr -a -i
-
 in the getnumberofplayers command, you can use argument:
 1.-s to get the number of players in different modes.`,
         ],
@@ -77,8 +75,16 @@ in the getnumberofplayers command, you can use argument:
       messageToSend = getData('playernumber', e.message.text.substring(20));
       if (splitkind) messageToSend.responses = playerCount();
       else messageToSend.responses = [];
-    } else if (e.message.text.indexOf('/whereis') === 0) {
-      messageToSend = queryPlayer(e.message.text.substring(9));
+    } else if (e.message.text.indexOf('/find') === 0) {
+      messageToSend = queryPlayer(e.message.text.substring(6));
+    } else if (e.message.text.indexOf('/iwannaplay' === 0)) {
+      powerfulplayers = ['Eki', 'Rice', 'Kunao', '18m/s', 'Texas.C', ''];
+      let responses = [];
+      for (let playername of powerfulplayers)
+        if (queryPlayer(playername).online) responses.push(playername);
+      messageToSend = {
+        responses: ['Go and play with: ' + responses.join(',')],
+      };
     }
     if (messageToSend.responses.length !== 0) {
       for (let thing of messageToSend.responses) sendMessage(message, thing);
@@ -86,8 +92,9 @@ in the getnumberofplayers command, you can use argument:
 
     if (
       e.message.text.indexOf('/help') !== 0 &&
-      e.message.text.indexOf('/whereis') !== 0
+      e.message.text.indexOf('/find') !== 0 &&
       // && splitkind === false
+      e.message.text.indexOf('/iwannaplay') !== 0
     )
       sendMessage(
         message,
@@ -217,6 +224,7 @@ function getData(kind, commands) {
 
 function queryPlayer(playername) {
   let responses = [];
+  let isonline = true;
   for (let server of serverlist) {
     for (let player of server.players)
       if (player.name === playername) {
@@ -226,24 +234,42 @@ function queryPlayer(playername) {
         }
         tmp = tmp.slice(0, -1);
         if (tmp === '') tmp = 'alone';
-        else tmp = 'with ' + tmp;
+        else tmp = 'others:' + tmp;
         let response = [
           server.name,
           server.server_ip + ':' + server.server_port,
-          server.gamemode,
+          server.gamemode + ':' + server.map,
           tmp,
         ].join('\n');
         responses.push(response);
         break;
       }
   }
-  if (responses.length === 0) responses = ['Not noline.'];
-  if (playername === '') responses = ['Who are you going to query?'];
-  return { responses: responses };
+  if (responses.length === 0) {
+    isonline = false;
+    responses = ['Not noline.'];
+  }
+  if (playername === '') {
+    isonline = false;
+    responses = ['Who are you going to query?'];
+  }
+  return { online: isonline, responses: responses };
 }
 
 function playerCount(isforrecord = false) {
-  playercount = { ddr: 0, dm: 0, fng: 0, inf: 0, others: 0 };
+  modes = [
+    'ball',
+    'bomb',
+    'ctf',
+    'ddr',
+    'dm',
+    'fng',
+    'hunter',
+    'inf',
+    'others',
+  ];
+  playercount = {};
+  for (let mode of modes) playercount[mode] = 0;
   for (let server of serverlist)
     if (server.country === 'China') {
       let counted = false;
@@ -260,7 +286,8 @@ function playerCount(isforrecord = false) {
   } else {
     let responses = [];
     for (let mode in playercount)
-      responses.push(mode + ' : ' + playercount[mode] + ' players.');
+      if (playercount[mode] !== 0)
+        responses.push(mode + ' : ' + playercount[mode] + ' players.');
     return [responses.join('\n')];
   }
 }
